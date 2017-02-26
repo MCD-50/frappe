@@ -56,6 +56,16 @@ io.on('connection', function (socket) {
 		socket.join(room);
 	});
 
+	socket.on('join_room', function (room_name) {
+		socket.join(room_name);
+		socket.emit('joined_room', 'joined_room');
+	});
+
+	socket.on('leave_room', function (room_name) {
+		socket.leave(room_name)
+		socket.emit('joined_room', 'left_room');
+	});
+
 	socket.on('task_unsubscribe', function (task_id) {
 		var room = get_task_room(socket, task_id);
 		socket.leave(room);
@@ -130,16 +140,10 @@ io.on('connection', function (socket) {
 });
 
 
-
 subscriber.on("message", function (channel, message) {
 	message = JSON.parse(message);
-	// if (typeof (message.type) !== 'undefined' && message.type.includes('fromkickApp')) {
-
-	// } else {
-	// 	io.to(message.room).emit(message.event, message.message);
-	// }
+	console.log(message.room);
 	io.to(message.room).emit(message.event, message.message);
-	// console.log(message.room, message.event, message.message)
 });
 
 subscriber.subscribe("events");
@@ -304,3 +308,5 @@ function get_conf() {
 
 	return conf;
 }
+
+
