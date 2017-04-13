@@ -8,21 +8,23 @@ action_mapper = {"create":"create_doc", "update":"update_doc",
 
 actions = frappe._dict({d.upper():d.lower() for d in action_mapper.keys()}) 
 
-stories = {"1":"hey bro 1.", "2":"hey bro 2.", "3":"hey bro 3.", "4":"hey bro 4."}
+delemiters = {
+	"and": ['and', '&', '&&'],
+	"or":['or', '||', '|', ',']
+}
 
-GREETING_KEYWORDS = ("hello", "hi", "greetings", "sup", "what's up", "good morning", "good evening", "good night")
+GREETING_KEYWORDS = ["hello", "hi", "greetings", "sup", "what's up", "good morning", "good evening", "good night"]
 BYE_KEYWORDS= ["bye", "goodbye", "bi", "see ya", "see you"]
 
-GREETING_RESPONSES = ("sup bro", "hey", "*nods*", "doing good", "awesome")
-BYE_KEYWORDS= ["bye", "goodbye"]
+GREETING_RESPONSES = ["sup bro", "hey", "*nods*", "doing good", "awesome"]
+BYE_RESPONSES= ["bye", "goodbye"]
+
 
 
 
 def get_method_name_from_action(action):
 	return action_mapper.get(action.lower(), None)
 
-def get_random_story():
-	return stories.get(randint(1,4), 'This is not a story.')
 
 
 

@@ -20,7 +20,7 @@ class Engine(object):
 
 	def prepare_tables(self, doctypes):
 		self.tables = filter(lambda x: x in self.query or x[:-1] in self.query,
-							 [d.name.lower() for d in doctypes])
+			[d.name.lower() for d in doctypes])
 		self.append_show()
 	
 	def append_show(self):
