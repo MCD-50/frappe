@@ -109,16 +109,16 @@ class Query(object):
 		for y in yy:
 			#string at 0 index is our filter
 			xx.append(filter(None, re.split(dummy_regex, y))[0])
-		
-		dict_string = "{ "
-		(", ").join(,[x for x in xx]))
-		for x in xx:
-			x.strip()
-			x = x.replace("=", ":")
-			x = x.replace("is", ":")
-			x = x.replace("equal", ":")
-			dict_string += x		
-		dict_string += " }"
+	
+		# dict_string = "{ "
+		# (", ").join(,[x for x in xx]))
+		# for x in xx:
+		# 	x.strip()
+		# 	x = x.replace("=", ":")
+		# 	x = x.replace("is", ":")
+		# 	x = x.replace("equal", ":")
+		# 	dict_string += x		
+		# dict_string += " }"
 
 
 
