@@ -59,13 +59,22 @@ def format_response(chats):
 		results.append(item)
 	return results
 
-def map_chat(chats, room, chat_type, name):
+def format_bot_response(text, created_at, communication):
+	return {
+		"created_on": get_date(created_at),
+		"text": text,
+		"chat_data": None,
+		"bot_data": communication
+	}
+
+def map_chat(chats, room, chat_type, name =None, subject = None):
 	return {
 		"meta": {
+			"subject":subject,
 			"room": room,
 			"chat_type": chat_type,
-			"users": get_users(chat_type, name),
-			"owner": get_owner(name)
+			"users": get_users(chat_type, name) if name else [],
+			"owner": get_owner(chat_type, name) if name else None
 		},
 		"chat_items":chats
 	}
@@ -74,9 +83,6 @@ def get_date(created_at):
 	created_on = str(created_at)
 	return created_on.split('.')[0]
 
-def check_if_exists(doctype, filters):
-	return frappe.db.exists(doctype, filters)
-
 def dump_to_json(res):
 		res.chat_data = json.dumps(res.chat_data)
 		res.bot_data = json.dumps(res.bot_data)
@@ -84,13 +90,16 @@ def dump_to_json(res):
 
 def get_users(chat_type, name):
 	if chat_type == "personal":
-		return frappe.get_list('Chat User', 
-				fields=["title", "email"], 
-				filters={"chat_room": name})
+		return frappe.get_list('Chat User', ["title", "email"], filters={"chat_room": name})
 	return []
 
-def get_owner(name):
-	return frappe.get_doc('Chat Room', name).owner
+def get_owner(chat_type, name):
+	if chat_type == "group":
+		return frappe.get_doc('Chat Room', name).owner
+	return None
+
+
+
 
 # def get_item_as_dict(fields, item):
 # 	obj = {}

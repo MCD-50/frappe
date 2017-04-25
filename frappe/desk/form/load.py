@@ -174,7 +174,7 @@ def get_communication_data(doctype, name, start=0, limit=20, after=None, fields=
 
 	if doctype=='User':
 		conditions+= ' and not (reference_doctype="User" and communication_type="Communication")'
-
+	
 	communications = frappe.db.sql("""select {fields}
 		from tabCommunication
 		where {conditions} {group_by}
@@ -182,7 +182,7 @@ def get_communication_data(doctype, name, start=0, limit=20, after=None, fields=
 			fields = fields, conditions=conditions, group_by=group_by or ""),
 			{ "doctype": doctype, "name": name, "start": frappe.utils.cint(start), "limit": limit },
 			as_dict=as_dict)
-
+	
 	return communications
 
 def get_assignments(dt, dn):

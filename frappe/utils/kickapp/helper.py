@@ -49,3 +49,4 @@ class Helper(object):
 		if filters is not None:
 			query = query + """ where """ + filters
 		return frappe.db.sql(query + ';')
+		
