@@ -203,17 +203,17 @@ class Reply(object):
 		chats = []
 
 		chat_room = frappe.db.exists("Chat Room", {"room_name": str(obj.data.meta.room)})
-
+		
+		if chat_room is None:
+			chat_room = create_and_save_room_object(str(obj.data.meta.room), str(obj.data.meta.chat_type))
+		
 		if obj.data.meta.add:
 			items = save_message_in_database(chat_room, str(obj.data.meta.chat_type), 
-				str(obj.data.meta.room), obj)
+				str(obj.data.meta.room), obj.data)
 		
-		elif chat_room is None:
-			chat_room = create_and_save_room_object(str(obj.data.meta.room), str(obj.data.meta.chat_type))
-
 		if str(obj.data.meta.chat_type) == "bot":
-			""" add some funvtion here to send message"""
-			response_data = Engine().get_reply(obj)
+			""" add some function here to send message"""
+			# response_data = Engine().get_reply(obj)
 			
 			# if obj.data.meta.add:
 			# 	items = save_message_in_database(chat_room, str(obj.data.meta.chat_type), str(obj.data.meta.room), response_data)
@@ -224,6 +224,7 @@ class Reply(object):
 			# frappe.publish_realtime(event='message_from_server', message=chats, room=str(obj.email))
 
 		else:
+			print 'replecating/......'
 			users = [i for i in frappe.get_list('Chat User', ["email"], filters={"chat_room":chat_room}) if i.email != str(obj.email)]
 			for user in users:
 				chats.append(map_chat(format_response(items),str(obj.data.meta.room), str(obj.data.meta.chat_type), chat_room))

@@ -12,6 +12,7 @@ class ChatMessage(Document):
 	
 	def validate(self):
 		try:
+			print self.chat_data
 			json.loads(self.chat_data)
 		except Exception, e:
 			frappe.throw(_('Please check the Chat data field before saving.'))
