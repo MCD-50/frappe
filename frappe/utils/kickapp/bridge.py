@@ -30,20 +30,20 @@ def remove_user_from_group(obj):
 	return get_response_from_method_name("remove_user_from_group", frappe._dict(json.loads(obj)))
 
 @frappe.whitelist()
-def get_message(obj):
-	get_response_from_method_name("get_message", frappe._dict(json.loads(obj)), False)
+def get_messages(obj):
+	get_response_from_method_name("get_messages", frappe._dict(json.loads(obj)), False)
+
+# @frappe.whitelist()
+# def get_issues(obj):
+# 	return get_response_from_method_name("get_issues", frappe._dict(json.loads(obj)))
 
 @frappe.whitelist()
-def get_issues(obj):
-	return get_response_from_method_name("get_issues", frappe._dict(json.loads(obj)))
+def get_issues_for_user(obj):
+	return get_response_from_method_name("get_issues_for_user", frappe._dict(json.loads(obj)))
 
 @frappe.whitelist()
-def get_issue_for_user(obj):
-	return get_response_from_method_name("get_issue_for_user", frappe._dict(json.loads(obj)))
-
-@frappe.whitelist()
-def send_message_and_get_reply(obj):
-	get_response_from_method_name("send_message_and_get_reply", frappe._dict(json.loads(obj)), False)
+def send_message(obj):
+	get_response_from_method_name("send_message", frappe._dict(json.loads(obj)), False)
 
 
 # @frappe.whitelist()

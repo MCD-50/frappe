@@ -4,10 +4,10 @@ import json
 import datetime
 
 
-def save_message_in_database(chat_room, chat_type, room, query):
+def save_message_in_database(chat_room, chat_type, room, obj):
 	if chat_room is None:
 		chat_room = create_and_save_room_object(room, chat_type)
-	return create_and_save_message_object(chat_room, query)
+	return create_and_save_message_object(chat_room, obj)
 
 
 def create_and_save_room_object(room, chat_type):
@@ -19,17 +19,15 @@ def create_and_save_room_object(room, chat_type):
 	return doc.name
 
 
-def create_and_save_message_object(chat_room, query):
+def create_and_save_message_object(chat_room, obj):
 	doc = frappe.new_doc('Chat Message')
 	doc.chat_room = chat_room
-	for key, value in query.items():
-		if key == 'meta':
+	for key, value in obj.items():
+		if key == 'meta' or key == 'communication':
 			continue
 		elif key == 'created_on':
 			doc.set('created_at', str(value + '.123456'))
 		elif key == 'chat_data':
-			doc.set(key, json.dumps(value))
-		elif key == 'bot_data':
 			doc.set(key, json.dumps(value))
 		else:
 			doc.set(key, value)
@@ -46,7 +44,6 @@ def create_and_save_user_object(chat_room, user):
 	doc.save()
 	frappe.db.commit()
 
-
 def format_response(chats):
 	results = []
 	for chat in chats:
@@ -54,23 +51,22 @@ def format_response(chats):
 			"created_on": get_date(chat.created_at),
 			"text": chat.text,
 			"chat_data": json.loads(chat.chat_data),
-			"bot_data": json.loads(chat.bot_data),
+			"communication": None,
 		}
 		results.append(item)
 	return results
 
-def format_bot_response(text, created_at, communication):
+def format_communication_response(text, created_at, communication):
 	return {
 		"created_on": get_date(created_at),
 		"text": text,
 		"chat_data": None,
-		"bot_data": communication
+		"communication": communication
 	}
 
-def map_chat(chats, room, chat_type, name =None, subject = None):
+def map_chat(room, chat_type, chats, name=None):
 	return {
 		"meta": {
-			"subject":subject,
 			"room": room,
 			"chat_type": chat_type,
 			"users": get_users(chat_type, name) if name else [],
@@ -83,10 +79,10 @@ def get_date(created_at):
 	created_on = str(created_at)
 	return created_on.split('.')[0]
 
-def dump_to_json(res):
-		res.chat_data = json.dumps(res.chat_data)
-		res.bot_data = json.dumps(res.bot_data)
-		return [res]
+# def dump_to_json(res):
+# 		res.chat_data = json.dumps(res.chat_data)
+# 		res.communication = json.dumps(None)
+# 		return [res]
 
 def get_users(chat_type, name):
 	if chat_type == "personal":
@@ -97,6 +93,11 @@ def get_owner(chat_type, name):
 	if chat_type == "group":
 		return frappe.get_doc('Chat Room', name).owner
 	return None
+
+def get_room(owner, raised_by):
+	if(owner > raised_by):
+		return owner + raised_by
+	return raised_by + owner
 
 
 

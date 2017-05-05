@@ -55,7 +55,7 @@ class Bot(object):
 			#filters = get_filters()
 			sql_query = """select count(*) 
 				from `tab{0}`"""
-			return str(frappe.db.sql('select count(*) from `tab{0}`'.format(self.get_doctype()))[0][0])
+			#return str(frappe.db.sql('select count(*) from `tab{0}`'.format(self.get_doctype()))[0][0])
 		else:
 			reply = self.error_message()
 
