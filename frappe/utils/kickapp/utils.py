@@ -10,10 +10,11 @@ def save_message_in_database(chat_room, chat_type, room, obj):
 	return create_and_save_message_object(chat_room, obj)
 
 
-def create_and_save_room_object(room, chat_type):
+def create_and_save_room_object(room, chat_type, for_communication = 0):
 	doc = frappe.new_doc('Chat Room')
 	doc.room_name = room
 	doc.chat_type = chat_type
+	doc.for_communication = for_communication
 	doc.save()
 	frappe.db.commit()
 	return doc.name
@@ -56,20 +57,24 @@ def format_response(chats):
 		results.append(item)
 	return results
 
-def format_communication_response(text, created_at, communication):
-	return {
-		"created_on": get_date(created_at),
-		"text": text,
-		"chat_data": None,
-		"communication": communication
-	}
+def format_communication_response(communications, issue):
+	results = []
+	for communication in communications:
+		item = {
+			"issue": json.loads(issue),
+			"communications": json.loads(communications)
+		}
+		results.append(item)
+	return results
 
-def map_chat(room, chat_type, chats, name=None):
+# def create_communication(sender, sender_full_name, recipients, subject, content, status, attachment, communication_date)
+
+def map_chat(room, chat_type, chats, name=None, users = []):
 	return {
 		"meta": {
 			"room": room,
 			"chat_type": chat_type,
-			"users": get_users(chat_type, name) if name else [],
+			"users": get_users(chat_type, name) if name else users,
 			"owner": get_owner(chat_type, name) if name else None
 		},
 		"chat_items":chats
@@ -84,10 +89,53 @@ def get_date(created_at):
 # 		res.communication = json.dumps(None)
 # 		return [res]
 
+def set_customer_with_contact_in_room(email):
+	contact_list = frappe.db.sql('''select c.email_id, dl.link_name
+		from `tabDynamic Link` dl, `tabContact` c 
+		where c.name=dl.parent and dl.link_doctype="Customer" and dl.parenttype="Contact"
+		''')
+	from collections import defaultdict
+	__contact_list = defaultdict(list)
+	
+	for __k, __v in contact_list:
+		__contact_list[__k].append(__v)
+	
+	for __k, __v in __contact_list:
+		room =  get_room(email, __k)
+		chat_room = frappe.db.exists('Chat Room', {"chat_room":room})
+		if chat_room is None:
+			chat_room = create_and_save_room_object(room, 'group', for_communication = 1)
+			for v in __v:
+				user_data = frappe.db.exists("Chat User", {"email": v, "chat_room": chat_room})
+				if user_data is None:
+					title = frappe.db.sql("""select first_name, last_name 
+						from `tabContact` where email_id = %s""", v)
+					x = {"email":v, "title": get_title(title[0])}
+					create_and_save_user_object(chat_room, x)
+
+
 def get_users(chat_type, name):
 	if chat_type == "personal":
 		return frappe.get_list('Chat User', ["title", "email"], filters={"chat_room": name})
 	return []
+
+def get_communication_users(email, raised_by):
+	users = []
+	# user = frappe.get_list('User', ["full_name"], filters={"email": email})
+	# raised_by_user = frappe.get_list('Lead', ["lead_name"], filters={"email_id": raised_by})
+
+	# if raised_by_user is None or len(raised_by_user) < 1:
+	# 	raised_by_user = frappe.get_doc('Contact', frappe.get_list('Contact', ["name"], filters={"email_id": raised_by_user})[0].name)
+	# 	link = filter(lambda x : x.link_doctype == 'Customer', raised_by_user.links)[0]
+	# 	raised_by_user = frappe.get_doc('Customer', link.link_name)
+	# 	users.append({"title":raised_by_user.customer_name, "email":raised_by})
+	# else:
+	# 	users.append({"title":raised_by_user[0].lead_name, "email":raised_by})
+	
+	# if user and len(user) > 0:
+	# 	users.append({"title":user[0].full_name, "email":email})
+	return users
+
 
 def get_owner(chat_type, name):
 	if chat_type == "group":
@@ -99,7 +147,22 @@ def get_room(owner, raised_by):
 		return owner + raised_by
 	return raised_by + owner
 
+def get_title(title_tuple):
+	if len(title_tuple) > 1:
+		return title_tuple[0] + " " +title_tuple[1]
+	return title_tuple[0]
 
+def create_communications():
+	pass
+
+def create_issues():
+	pass
+
+def merge_issues_communications_for_customer():
+	pass
+
+def merge_issues_communications_for_lead():
+	pass
 
 
 # def get_item_as_dict(fields, item):

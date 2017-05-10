@@ -55,27 +55,34 @@ class Reply(object):
 				frappe.db.commit()
 		return 'Removed Users'
 	
-	def get_issues_for_user(self, obj):
+	def get_issues_for_room(self, obj):
 		""" publish emails when user open the contact"""
+		# now get all contacts in room
 		message = []
-		issue_list = frappe.get_list('Issue', ["name", "raised_by", "subject", "status", "description", 
-			"customer_name", "company", "customer", "contact"], filters= {"raised_by":str(obj.email)})
-		
-		for issue in issue_list:
-			#react native does not support html
-			issue.subject =  html2text.html2text(issue.subject)
-			issue.description =  html2text.html2text(issue.description)
-			
-			communications = self.get_communications_recursively('Issue', issue.name, 0, 20, communications= [], after = None)
-			
-			for c in communications:
-				c.subject = html2text.html2text(c.subject) if c.subject else None
-				c.content = html2text.html2text(c.content) if c.content else None
-			
-			if len(communications) > 0:
-				message.append(map_chat(format_communication_response(issue.description, communications[len(communications) - 1].creation, 
-					communications), str(obj.room), 'personal', 'communication', subject= issue.subject, raised_by=issue.raised_by))
-		
+		chat_room = frappe.db.exists("Chat Room", {"room_name": str(obj.room)})
+		if chat_room:
+			users = frappe.get_list('Chat User', ["email"], filters={"chat_room":chat_room})
+			for user in users:
+				issue_list = frappe.get_list('Issue', ["name", "raised_by", "subject", "status", "description", 
+					"customer_name", "company", "customer", "contact"], filters= {"raised_by":str(user.email)})
+				_x = []
+				for issue in issue_list:
+					# react native does not support html
+					issue.subject =  html2text.html2text(issue.subject)
+					issue.description =  html2text.html2text(issue.description)
+					
+					communications = self.get_communications_recursively('Issue', issue.name, 0, 20, communications= [], after = None)
+					
+					for c in communications:
+						c.subject = html2text.html2text(c.subject) if c.subject else None
+						c.content = html2text.html2text(c.content) if c.content else None
+					_x.append({"issue":issue, "communications":communications})
+				
+				# now find whether issue raised_by customer or lead
+					# if len(communications) > 0:
+					# 	communication_response = format_communication_response(communications, issue)
+					# 	message.append(map_chat(str(obj.room), 'group', communication_response, users=users))
+
 		return message
 	
 	def get_communications_recursively(self, doctype, name, limit_start, length, communications= [], after = None):
@@ -96,19 +103,6 @@ class Reply(object):
 			if len(x) > 19:
 				return self.get_communications_recursively(doctype, name, limit_start + 20, length, communications, after)
 		return communications
-
-	# def load_more(self, query):
-	# 	return Engine().load_more(query)
-
-	# def load_items(self, query):
-	# 	return Engine().load_items(query)
-
-	# def get_all_bots(self):
-	# 	items = self.helper.get_list('Chat Bot', 
-	# 		self.helper.get_doctype_fields_from_bot_name('Chat Bot'), get_all=True)
-	# 	for item in items:
-	# 		item.commands = json.loads(item.commands)
-	# 	return items
 	
 	def get_messages(self, obj):
 		""" publish message when user first open the app"""
@@ -116,11 +110,11 @@ class Reply(object):
 
 	def _get_messages(self, message, email, rooms, last_message_times, limit_start, limit_page_length):
 		""" publish message in blocks of 40"""
-		room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type"], limit_start=limit_start, limit_page_length=limit_page_length)
-		
+		room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type", "for_communication"], limit_start=limit_start, limit_page_length=limit_page_length)
+		room_list = filter(lambda x : x.for_communication == 0, room_list)
 		while(room_list is not None):
 			for room in room_list:
-				user_data = user_data = frappe.db.exists("Chat User", {"email": email, "chat_room": room.name})
+				user_data = frappe.db.exists("Chat User", {"email": email, "chat_room": room.name})
 				
 				if user_data:
 					filters = {"chat_room":room.name}
@@ -144,47 +138,101 @@ class Reply(object):
 			
 			if len(room_list) > 39:
 				limit_start = limit_start + 40
-				room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type"], limit_start=limit_start, limit_page_length=limit_page_length)
+				room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type", "for_communication"], limit_start=limit_start, limit_page_length=limit_page_length)
 			else:
 				room_list = None
-		self._get_issues([], email, 0, 40)
+		self._get_issues([], email, rooms, last_message_times, 0, 40)
 
-	def _get_issues(self, message, email, limit_start, limit_page_length):
-		issue_list = frappe.get_list('Issue', ["name", "raised_by", "subject", "status", "description", 
-				"customer_name", "company", "customer", "contact"], limit_start=limit_start, limit_page_length=limit_page_length)
+	
 
-		while(issue_list is not None):
-			for issue in issue_list:
-				#react native does not support html
-				issue.subject =  html2text.html2text(issue.subject) if issue.subject else None
-				issue.description =  html2text.html2text(issue.description) if issue.description else None
+	def _get_issues(self, message, email, rooms, last_message_times, limit_start, limit_page_length):
+		
+		room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type", "for_communication"], limit_start=limit_start, limit_page_length=limit_page_length)
+		room_list = filter(lambda x : x.for_communication == 1, room_list)
+		
+		while(room_list is not None):
+			for room in room_list:
+				user_data = frappe.db.exists("Chat User", {"email": email, "chat_room": room.name})
+				if user_data:
+					filters = {"chat_room":room.name}
+					index = -1
+					try:
+						index = rooms.index(room.room_name)
+					except Exception, e:
+						index = -1
+					if index > -1:
+						last_message_time = last_message_times[index]
+						if last_message_time:
+							last_message_time = str(str(last_message_time) + '.123456')
+							filters = {"chat_room":room.name, "creation":(">", last_message_time)}
 
-				"""
-				reference_owner: creator
-				reference_doctype: name of doctype for which communication is created 
-				reference_name:name of doctype item for which communication is created 
-				reference_user: email id of user who raised the communication
-				"""
+					# users = frappe.get_list('Chat User', ["email"], filters={"chat_room":room.name})
+					# now get all issues by all users
+					
+					# contact_list = frappe.db.sql('''select c.email_id, dl.link_name
+					# 	from `tabDynamic Link` dl, `tabContact` c 
+					# 	where c.name=dl.parent and dl.link_doctype="Customer" and dl.parenttype="Contact"
+					# 	''')
+					
+					frappe.db.sql("")
 
-				communications = self.get_communications_recursively('Issue', issue.name, 0, 20, communications= [], after = None)
+		# room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type", "for_communication"], limit_start=limit_start, limit_page_length=limit_page_length)
+		# room_list = filter(lambda x : x.for_communication == 1, room_list)
+		# while(room_list is not None):
+
+		# 	for room in room_list:
+		# 		user_data = frappe.db.exists("Chat User", {"email": email, "chat_room": room.name})
 				
-				for c in communications:
-					c.subject = html2text.html2text(c.subject) if c.subject else None
-					c.content = html2text.html2text(c.content) if c.content else None
+		# 		if user_data:
+		# 			filters = {"chat_room":room.name}
+		# 			index = -1
+		# 			try:
+		# 				index = rooms.index(room.room_name)
+		# 			except Exception, e:
+		# 				index = -1
+		# 			if index > -1:
+		# 				last_message_time = last_message_times[index]
+		# 				if last_message_time:
+		# 					last_message_time = str(str(last_message_time) + '.123456')
+		# 					filters = {"chat_room":room.name, "creation":(">", last_message_time)}
+				
+		# 			users = frappe.get_list('Chat User', ["email"], filters={"chat_room":room.name})
+		# 			__x = []
+					
+		# 			for user in users:
+						
+		# 				issue_list = frappe.get_list('Issue', ["name", "raised_by", "subject", "status", "description", 
+		# 					"customer_name", "company", "customer", "contact"], filters= {"raised_by":str(user.email)})
+						
+		# 				for issue in issue_list:
+		# 					#react native does not support html
+		# 					issue.subject =  html2text.html2text(issue.subject)
+		# 					issue.description =  html2text.html2text(issue.description)
+							
+		# 					communications = self.get_communications_recursively('Issue', issue.name, 0, 20, communications= [], after = None)
+							
+		# 					for c in communications:
+		# 						c.subject = html2text.html2text(c.subject) if c.subject else None
+		# 						c.content = html2text.html2text(c.content) if c.content else None
+							
+		# 					__x.append({"name":issue.name, "description":issue.description, 
+		# 						"raised_by":issue.raised_by, "subject": issue.subject, 
+		# 						"status":issue.status, "communications":communications})
 
-				if len(communications) > 0:
-					communication_response = format_communication_response(issue.description, communications[len(communications) - 1].creation, communications)
-					message.append(map_chat(communication_response, get_room(email, issue.raised_by), 'personal', 'communication', subject= issue.subject, raised_by=issue.raised_by))
+		# 			if len(__x) > 0:
+
+		# 				raised_by_user = frappe.get_list('Lead', ["lead_name"], filters={"email_id": raised_by})
+		# 				communication_response = format_communication_response(communications, issue)
+		# 				message.append(map_chat(str(room.room_name), 'group', communication_response, users=users))
+
+
+		# 	frappe.publish_realtime(event='message_from_server', message=message, room=email)
 			
-			frappe.publish_realtime(event='message_from_server', message=message, room=email)
-
-			if len(issue_list) > 39:
-				limit_start = limit_start + 40
-				issue_list = frappe.get_list('Issue', ["name", "raised_by", "subject", "status", "description", 
-					"customer_name", "company", "customer", "contact"], limit_start=limit_start, limit_page_length=limit_page_length)
-			else:
-				issue_list = None
-
+		# 	if len(room_list) > 39:
+		# 		limit_start = limit_start + 40
+		# 		room_list = frappe.get_list('Chat Room', ["name", "room_name", "chat_type", "for_communication"], limit_start=limit_start, limit_page_length=limit_page_length)
+		# 	else:
+		# 		room_list = None
 
 	def send_message(self, obj):
 		""" publish message"""
