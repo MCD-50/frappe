@@ -152,7 +152,6 @@ io.on('connection', function(socket){
 subscriber.on("message", function(channel, message) {
 	message = JSON.parse(message);
 	io.to(message.room).emit(message.event, message.message);
-	console.log(message.room, message.event, message.message);
 });
 
 subscriber.subscribe("events");

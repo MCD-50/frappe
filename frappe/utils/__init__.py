@@ -11,10 +11,8 @@ from .html_utils import sanitize_html
 
 import frappe
 from frappe.utils.identicon import Identicon
-
 # utility functions like cint, int, flt, etc.
 from frappe.utils.data import *
-
 default_fields = ['doctype', 'name', 'owner', 'creation', 'modified', 'modified_by',
 	'parent', 'parentfield', 'parenttype', 'idx', 'docstatus']
 
@@ -320,6 +318,12 @@ def decode_dict(d, encoding="utf-8"):
 			d[key] = d[key].decode(encoding, "ignore")
 
 	return d
+
+def notify_list_update(doctype):
+	# notify kick app in real time when new entry is added or deleted
+	room = str(frappe.session.user)
+	if doctype == 'Issue' or  doctype == 'Communication' or doctype == 'Opportunity':
+		frappe.publish_realtime('kick_list_update', message={ "doctype": doctype }, room=room)
 
 def get_site_name(hostname):
 	return hostname.split(':')[0]
