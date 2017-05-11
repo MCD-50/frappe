@@ -14,19 +14,25 @@ def get_dev_port():
 
 @frappe.whitelist()
 def get_issues(obj):
-	obj = frappe._dict(obj)
-
-	from_last_week = add_to_date(getdate(today()), days=-7, as_string=True)
-	issues = frappe.get_list('Issue', fields="*", filters={"modified":(">", from_last_week)})
-	return issues
+	if obj is None:
+		from_last_week = add_to_date(getdate(today()), days=-7, as_string=True)
+		issues = frappe.get_list('Issue', fields="*", filters={"modified":(">", from_last_week)})
+		return issues
+	elif obj is not None:
+		# user query based fetching
+		obj = frappe._dict(obj)
+	return None
 
 @frappe.whitelist()
 def get_opportunities(obj):
-	obj = frappe._dict(obj)
-
-	from_last_month = add_to_date(getdate(today()), days=-30, as_string=True)
-	opportunity = frappe.get_list('Opportunity', fields="*", filters={"modified":(">", from_last_month)})
-	return opportunity
+	if obj is None:
+		from_last_month = add_to_date(getdate(today()), days=-30, as_string=True)
+		opportunity = frappe.get_list('Opportunity', fields="*", filters={"modified":(">", from_last_month)})
+		return opportunity
+	elif obj is not None:
+		obj = frappe._dict(obj)
+		# user query based fetching
+	return None
 
 @frappe.whitelist()
 def get_communications(obj):
@@ -52,3 +58,10 @@ def get_communications(obj):
 		else:
 			x = None
 	return communications
+
+def notify_list_update(doctype):
+	pass
+
+@frappe.whitelist()
+def get_user():
+	return frappe.session.user

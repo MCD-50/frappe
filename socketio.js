@@ -71,6 +71,16 @@ io.on('connection', function(socket){
 		socket.leave(room);
 	});
 
+	socket.on('join_room', function (room_name) {
+		socket.join(room_name);
+		socket.emit('joined_room', 'joined_room');
+	});
+
+	socket.on('leave_room', function (room_name) {
+		socket.leave(room_name)
+		socket.emit('left_room', 'left_room');
+	});
+
 	socket.on('progress_subscribe', function(task_id) {
 		var room = get_task_room(socket, task_id);
 		socket.join(room);
@@ -142,7 +152,7 @@ io.on('connection', function(socket){
 subscriber.on("message", function(channel, message) {
 	message = JSON.parse(message);
 	io.to(message.room).emit(message.event, message.message);
-	// console.log(message.room, message.event, message.message)
+	console.log(message.room, message.event, message.message);
 });
 
 subscriber.subscribe("events");

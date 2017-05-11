@@ -15,7 +15,7 @@ import hashlib, json
 from frappe.model import optional_fields
 from frappe.utils.file_manager import save_url
 from frappe.utils.global_search import update_global_search
-
+from frappe.utils.kick import notify_list_update
 # once_only validation
 # methods
 
@@ -833,6 +833,7 @@ class Document(BaseDocument):
 		if not self.meta.get("read_only") and not self.meta.get("issingle") and \
 			not self.meta.get("istable"):
 			frappe.publish_realtime("list_update", {"doctype": self.doctype}, after_commit=True)
+			notify_list_update(self.doctype)
 
 
 	def check_no_back_links_exist(self):
