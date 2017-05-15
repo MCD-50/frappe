@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import frappe
 import json
+from frappe import _
 from frappe.utils import today, getdate, add_to_date
 from frappe.desk.form.load import get_communication_data, get_attachments
 
@@ -34,40 +35,10 @@ def get_opportunities(obj):
 	return opportunity
 
 
-# @frappe.whitelist()
-# def get_communications():
-# 	# doctype, name, limit_start, length, communications= [], after = None
-# 	communications = []
-# 	start = 0
-# 	x = get_communication_data("Issue", "ISS-00008", start, 20, None)
-# 	while x is not None:
-# 		for c in x:
-# 			if c.communication_type=="Communication":
-# 				c.attachments = json.dumps(frappe.get_all("File", fields=["file_url", "is_private"],
-# 				filters={"attached_to_doctype": "Communication", "attached_to_name": c.name}))
-
-# 			elif c.communication_type=="Comment" and c.comment_type=="Comment":
-# 				c.content = frappe.utils.markdown(c.content)
-			
-# 			if c.content:
-# 				try:
-# 					c.content = html2text(c.content)
-# 				except HTMLParser.HTMLParseError:
-# 					c.content = c.content
-
-# 		communications += x
-# 		if len(x) > 19:
-# 			start = start + 20
-# 			x = get_communication_data("Issue", "ISS-00008", start, 20, None)
-# 		else:
-# 			x = None
-# 	return communications
-
 @frappe.whitelist()
 def get_communications(obj):
 	# doctype, name, limit_start, length, communications= [], after = None
 	obj = frappe._dict(json.loads(obj))
-	print(obj.after)
 	communications = []
 	start = obj.limit_start
 	x = get_communication_data(obj.doctype, obj.name, start, 20, obj.after)
@@ -97,4 +68,5 @@ def get_communications(obj):
 
 @frappe.whitelist()
 def send_email(obj):
-	pass
+	obj = frappe._dict(json.loads(obj))
+	frappe.sendmail(recipients = [obj.recipients], sender = obj.sender, subject = _("Re: ") + obj.subject, content = obj.content)
