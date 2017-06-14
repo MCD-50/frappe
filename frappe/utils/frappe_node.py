@@ -15,9 +15,17 @@ def add_doc(data):
 	doctype = obj.get('doctype')
 	info = obj.get('info')
 	
-	x = frappe.new_doc(doctype, info.get('parent_doc'),info.get('parentfield'))
-	
-	return x
+	print([x for x in frappe.local])
+	try:
+		x = frappe.new_doc(doctype, info.get('parent_doc'), info.get('parentfield'))
+		for key, value in info.items():
+			if key == 'parent_doc' or key == 'parentfield':
+				continue
+			# set all values
+			x[key] = value
+		return x
+	except Exception, e:
+		return e
 
 
 @frappe.whitelist()
