@@ -164,8 +164,8 @@ def get_list(data):
 		ignore_permissions = info.get('ignore_permissions') or False
 
 		res = frappe.get_list(doctype, fields=fields, filters=filters, order_by=order_by,
-							  limit_start=limit_start, limit_page_length=limit_page_length,
-							  ignore_permissions=ignore_permissions)
+			limit_start=limit_start, limit_page_length=limit_page_length,
+			ignore_permissions=ignore_permissions)
 
 	except Exception, e:
 		exe = e
